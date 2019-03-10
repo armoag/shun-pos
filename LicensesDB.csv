@@ -1,0 +1,6 @@
+Id	User	LicenseKey	Customer	StartDate	EndDate	KillExempt	ClientAddress	MasterKey	LastCheckIn	SoftwareName	SoftwareRev	CloudEnabled	Status
+1	estrella	454ACD	Estrella de Regalos	1/1/2019	3/1/2019	Yes	12FE	2154AAEF	2/28/2019	Retail	1.0.0	No	Trial
+2	estrella2	517WPF	Estrella de Regalos	1/1/2019	3/5/2020	Yes	11CD	1779AADC	2/28/2019	Retail	1.1.1	No	Full
+3	wibsar	145MGX	Wibsar	2/1/2019	12/15/2020	Yes	12AD	1879ACDB	2/28/2019	Retail	1.0.2	No	Monthly
+4	decorlab	269LKQ	DecorLab	2/15/2019	12/1/2019	No	981B	1842ACDD	2/28/2019	Retail	1.0.2	No	Monthly
+5	conteiner1	111FTS	Conteiner	3/1/2029	4/1/2019	Yes	14BB	1247ABFE	3/2/2019	Yonke	1.0.0	Yes	Monthly
