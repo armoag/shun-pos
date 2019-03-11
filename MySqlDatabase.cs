@@ -78,6 +78,8 @@ namespace Shun
                 UserID = userId,
                 Password = password
             };
+
+            Connection = new MySqlConnection(ConnectionString.ToString());
         }
 
         #endregion
@@ -140,17 +142,55 @@ namespace Shun
         public void Insert()
         {
 
-            string query = "INSERT INTO tableinfo (name, age) VALUES('John Smith', '33')";
-            
+            string query = "INSERT INTO " + Database + " (LicenseKey, CurrentUser) VALUES ('1234567890abc', 'TestUser2')";
             //open connection
             if (this.OpenConnection(out var errorMessage) == true)
             {
                 //create command and assign the query and connection from the constructor
-                MySqlCommand cmd = new MySqlCommand(query, Connection);
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    //Execute command
+                    cmd.ExecuteNonQuery();
+                };
+                //close connection
+                this.CloseConnection(out errorMessage);
+            }
+        }
 
-                //Execute command
-                cmd.ExecuteNonQuery();
+        //Insert statement
+        public void Insert(List<Tuple<string, string>> colValPairs)
+        {
+            string query = "INSERT INTO " + Database + " (";
 
+            foreach (var pair in colValPairs)
+            {
+                query = string.Concat(query, pair.Item1, ", ");
+            }
+
+            //remove last comma and space
+            query = query.Remove(query.Length - 2, 2);
+            query = query + ") VALUES (";
+
+            foreach (var pair in colValPairs)
+            {
+                string temp = "'" + pair.Item2 + "'";
+                query = string.Concat(query, temp, ", ");
+            }
+            //remove last comma and space
+            query = query.Remove(query.Length - 2, 2);
+            query = query + ")";
+
+ //           string query2 = "INSERT INTO " + Database + " (LicenseKey, CurrentUser) VALUES ('1234567890abc', 'TestUser2')";
+
+            //open connection
+            if (this.OpenConnection(out var errorMessage) == true)
+            {
+                //create command and assign the query and connection from the constructor
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    //Execute command
+                    cmd.ExecuteNonQuery();
+                };
                 //close connection
                 this.CloseConnection(out errorMessage);
             }
