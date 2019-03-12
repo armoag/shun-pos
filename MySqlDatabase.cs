@@ -12,12 +12,18 @@ namespace Shun
 {
     public class MySqlDatabase
     {
+        #region Fields
+
         private MySqlConnection _connection;
         private string _server;
         private string _database;
         private string _userId;
         private string _password;
         private MySqlConnectionStringBuilder _connectionString;
+
+        #endregion
+
+        #region Properties
 
         public string Server
         {
@@ -58,9 +64,6 @@ namespace Shun
             set { _connectionString = value; }
         }
 
-        #region Properties
-
-
         #endregion
 
         #region Constructors
@@ -85,6 +88,60 @@ namespace Shun
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Open connection to mysql db
+        /// </summary>
+        /// <param name="errorMessage"></param>
+        /// <returns></returns>
+        private bool OpenConnection(out string errorMessage)
+        {
+            try
+            {
+                Connection.Open();
+                errorMessage = string.Empty;
+                return true;
+            }
+            catch (MySqlException ex)
+            {
+                switch (ex.Number)
+                {
+                    case 0:
+                        errorMessage = "Cannot connect to server.  Contact administrator";
+                        break;
+
+                    case 1045:
+                        errorMessage = "Invalid username/password, please try again";
+                        break;
+                    default:
+                        errorMessage = errorMessage = "Error opening connection";
+                        break;
+
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Close connection to mysql db
+        /// </summary>
+        /// <param name="errorMessage"></param>
+        /// <returns></returns>
+        private bool CloseConnection(out string errorMessage)
+        {
+            try
+            {
+                Connection.Close();
+                errorMessage = string.Empty;
+                return true;
+            }
+            catch (MySqlException ex)
+            {
+                errorMessage = ex.Message;
+                return false;
+            }
+        }
+
 
         public bool Read (string key)
         {
@@ -132,17 +189,12 @@ namespace Shun
             return true;
         }
 
-        //Initialize values
-        private void Initialize()
+        /// <summary>
+        /// Insert mysql statement
+        /// </summary>
+        /// <param name="query"></param>
+        public void Insert(string query)
         {
-
-        }
-
-        //Insert statement
-        public void Insert()
-        {
-
-            string query = "INSERT INTO " + Database + " (LicenseKey, CurrentUser) VALUES ('1234567890abc', 'TestUser2')";
             //open connection
             if (this.OpenConnection(out var errorMessage) == true)
             {
@@ -157,16 +209,20 @@ namespace Shun
             }
         }
 
-        //Insert statement
+        /// <summary>
+        /// Insert mysql statement with column data pairs
+        /// </summary>
+        /// <param name="colValPairs"></param>
         public void Insert(List<Tuple<string, string>> colValPairs)
         {
+            if (colValPairs == null) return;
+
             string query = "INSERT INTO " + Database + " (";
 
             foreach (var pair in colValPairs)
             {
                 query = string.Concat(query, pair.Item1, ", ");
             }
-
             //remove last comma and space
             query = query.Remove(query.Length - 2, 2);
             query = query + ") VALUES (";
@@ -180,9 +236,7 @@ namespace Shun
             query = query.Remove(query.Length - 2, 2);
             query = query + ")";
 
- //           string query2 = "INSERT INTO " + Database + " (LicenseKey, CurrentUser) VALUES ('1234567890abc', 'TestUser2')";
-
-            //open connection
+            //Open connection
             if (this.OpenConnection(out var errorMessage) == true)
             {
                 //create command and assign the query and connection from the constructor
@@ -196,38 +250,104 @@ namespace Shun
             }
         }
 
-        //Update statement
-        public void Update()
+        /// <summary>
+        /// Update mysql statement
+        /// </summary>
+        /// <param name="identifierCol"></param>
+        /// <param name="identifierValue"></param>
+        /// <param name="colValPairs"></param>
+        public void Update(string identifierCol, string identifierValue, List<Tuple<string, string>> colValPairs)
         {
-            string query = "UPDATE tableinfo SET name='Joe', age='22' WHERE name='John Smith'";
+            if (colValPairs == null || identifierCol == string.Empty || identifierValue == string.Empty) return;
+
+            //string query = "UPDATE tableinfo SET name='Joe', age='22' WHERE name='John Smith'";
+            string query = "UPDATE " + Database + " SET ";
+
+            foreach (var pair in colValPairs)
+            {
+                query = string.Concat(query, pair.Item1, "='", pair.Item2, "', ");
+            }
+            //remove last comma, quote, and space
+            query = query.Remove(query.Length - 3, 3);
+            //identifier selector
+            query = string.Concat(" WHERE ", identifierCol, "='", identifierValue, "'");
 
             //Open connection
             if (this.OpenConnection(out var errorMessage) == true)
             {
-                //create mysql command
-                MySqlCommand cmd = new MySqlCommand();
-                //Assign the query using CommandText
-                cmd.CommandText = query;
-                //Assign the connection using Connection
-                cmd.Connection = Connection;
-
-                //Execute query
-                cmd.ExecuteNonQuery();
-
+                //create command and assign the query and connection from the constructor
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    //Execute command
+                    cmd.ExecuteNonQuery();
+                };
                 //close connection
                 this.CloseConnection(out errorMessage);
             }
         }
-        
-        //Delete statement
-        public void Delete()
-        {
-            string query = "DELETE FROM tableinfo WHERE name='John Smith'";
 
+        /// <summary>
+        /// Update mysql statement
+        /// </summary>
+        /// <param name="query"></param>
+        public void Update(string query)
+        {
+            //Open connection
             if (this.OpenConnection(out var errorMessage) == true)
             {
-                MySqlCommand cmd = new MySqlCommand(query, Connection);
-                cmd.ExecuteNonQuery();
+                //create command and assign the query and connection from the constructor
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    //Execute command
+                    cmd.ExecuteNonQuery();
+                };
+                //close connection
+                this.CloseConnection(out errorMessage);
+            }
+        }
+
+        /// <summary>
+        /// Delete mysql statement
+        /// </summary>
+        /// <param name="identifierCol"></param>
+        /// <param name="identifierValue"></param>
+        public void Delete(string identifierCol, string identifierValue)
+        {
+            if (identifierCol == string.Empty || identifierValue == string.Empty) return;
+
+            string query = "DELETE FROM " + Database + " WHERE ";
+            query = string.Concat(identifierCol, "='", identifierValue, "'");
+
+            //Open connection
+            if (this.OpenConnection(out var errorMessage) == true)
+            {
+                //create command and assign the query and connection from the constructor
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    //Execute command
+                    cmd.ExecuteNonQuery();
+                };
+                //close connection
+                this.CloseConnection(out errorMessage);
+            }
+        }
+
+        /// <summary>
+        /// Delete mysql statement
+        /// </summary>
+        /// <param name="query"></param>
+        public void Delete(string query)
+        {
+            //Open connection
+            if (this.OpenConnection(out var errorMessage) == true)
+            {
+                //create command and assign the query and connection from the constructor
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    //Execute command
+                    cmd.ExecuteNonQuery();
+                };
+                //close connection
                 this.CloseConnection(out errorMessage);
             }
         }
@@ -274,55 +394,13 @@ namespace Shun
             }
         }
 
-        //Open connection to dababase
-        private bool OpenConnection(out string errorMessage)
-        {
-            try
-            {
-                Connection.Open();
-                errorMessage = string.Empty;
-                return true;
-            }
-            catch (MySqlException ex)
-            {
-                switch (ex.Number)
-                {
-                    case 0:
-                        errorMessage = "Cannot connect to server.  Contact administrator";
-                        break;
-
-                    case 1045:
-                        errorMessage = "Invalid username/password, please try again";
-                        break;
-                    default:
-                        errorMessage = errorMessage = "Error opening connection";
-                        break;
-
-                }
-                return false;
-            }
-        }
-
-        //Close connection to dababase
-        private bool CloseConnection(out string errorMessage)
-        {
-            try
-            {
-                Connection.Close();
-                errorMessage = string.Empty;
-                return true;
-            }
-            catch (MySqlException ex)
-            {
-                errorMessage = ex.Message;
-                return false;
-            }
-        }
-
-        //Count statement
+        /// <summary>
+        /// Get the number of entries found
+        /// </summary>
+        /// <returns></returns>
         private int Count()
         {
-            string query = "SELECT Count(*) FROM tableinfo";
+            string query = "SELECT Count(*) FROM " + Database;
             int Count = -1;
 
             //Open Connection
@@ -389,7 +467,10 @@ namespace Shun
             }
         }
 
-        //Restore
+        /// <summary>
+        /// Restore DB based on .sql file
+        /// </summary>
+        /// <param name="errorMessage"></param>
         public void Restore(out string errorMessage)
         {
             try
@@ -409,7 +490,6 @@ namespace Shun
                     UserId, Password, Server, Database);
                 psi.UseShellExecute = false;
 
-
                 Process process = Process.Start(psi);
                 process.StandardInput.WriteLine(input);
                 process.StandardInput.Close();
@@ -423,42 +503,6 @@ namespace Shun
             }
         }
         #endregion
-
-        //Testing
-        //try
-        //{
-        //    var conn = new MySqlConnection(@"Server=wibsarlicencias.csqn2onotlww.us-east-1.rds.amazonaws.com;Database=Licenses;Uid=armoag;Pwd=Yadira00;");
-        //    conn.Open();
-
-        //    string sql = @"SELECT LicenseKey, CurrentUser FROM Licenses WHERE idLicenses=2";
-
-        //    var cmd = new MySqlCommand(sql, conn);
-
-        //    MySqlDataReader reader = cmd.ExecuteReader();
-        //    if (reader.Read())
-        //    {
-        //        var license = reader["LicenseKey"].ToString();
-        //        var currentUser = reader["CurrentUser"].ToString();
-        //    }
-
-        //    sql = @"SELECT LicenseKey, CurrentUser FROM Licenses WHERE idLicenses=1";
-
-        //    var cmd2 = new MySqlCommand(sql, conn);
-        //    //         MySqlDataReader reader = cmd.ExecuteReader();
-        //    if (reader.Read())
-        //    {
-        //        var license = reader["LicenseKey"].ToString();
-        //        var currentUser = reader["CurrentUser"].ToString();
-        //    }
-
-        //    conn.Close();
-        //}
-        //catch (Exception e)
-        //{
-        //    var x = 1;
-        //}
-
-
     }
 }
 
