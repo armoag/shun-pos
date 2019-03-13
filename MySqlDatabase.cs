@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using MySql.Data;
@@ -142,51 +145,46 @@ namespace Shun
             }
         }
 
-
-        public bool Read (string key)
+        public bool Read (string key, out List<Tuple<string, List<Tuple<string, string>>>> keyColNameValuePair)
         {
             try
             {
                 //var sqlCommand = @"SELECT * FROM Licenses";
-                var sqlCommand = @"SELECT " + key + " FROM " + Database;
+                var query = @"SELECT " + key + " FROM " + Database;
 
-                using (MySqlConnection conn = new MySqlConnection(ConnectionString.ToString()))
+                //list of key, list of colname, colvalue tuples
+                var keyNameValue = new List<Tuple<string, List<Tuple<string, string>>>>();
+
+                //Open connection
+                if (this.OpenConnection(out var errorMessage) == true)
                 {
-                    conn.Open();
-                    var schema = conn.GetSchema();
-                    using (MySqlCommand cmd = new MySqlCommand(sqlCommand, conn))
+                    using (MySqlCommand cmd = new MySqlCommand(query, Connection))
                     {
-                        using (MySqlDataReader dr = cmd.ExecuteReader())
+                        using (MySqlDataReader dataReader = cmd.ExecuteReader())
                         {
-                            if (dr.Read())
+                            while (dataReader.Read())
                             {
-                                var z = dr.GetDataTypeName(0);
-                                z = dr.GetDataTypeName(1);
-                                z = dr.GetDataTypeName(2);
-                                z = dr.GetDataTypeName(3);
-                                z = dr.GetDataTypeName(4);
-                                z = dr.GetDataTypeName(5);
-                                z = dr.GetDataTypeName(6);
-                                z = dr.GetDataTypeName(7);
-                                var ab = dr.FieldCount;
-                                var ac = dr.GetName(1);
-
-                                var x = dr.GetString("LicenseKey");
-                                var license = dr["LicenseKey"].ToString();
-                                var currentUser = dr["CurrentUser"].ToString();
-
-                                var y = dr.GetDateTime("ExpirationDate");
+                                var nameValue = new List<Tuple<string, string>>();
+                                var colCount = dataReader.FieldCount;
+                                //get all column names and values
+                                for (var i = 0; i < colCount; i++)
+                                {
+                                    nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), dataReader[i].ToString()));
+                                }
+                                keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(key, nameValue));
                             }
                         }
                     }
                 }
+
+                keyColNameValuePair = keyNameValue; 
+                return true;
             }
             catch (Exception e)
             {
-
+                keyColNameValuePair = null;
+                return false;
             }
-
-            return true;
         }
 
         /// <summary>
@@ -394,6 +392,63 @@ namespace Shun
             }
         }
 
+        //Select statement
+        public DataTable SelectAll(List<string> colNames)
+        {
+            var dataTable = new DataTable();
+            var column = new DataColumn();
+
+            //Create columns
+            foreach (var colName in colNames)
+            {
+                column.DataType = System.Type.GetType("System.String");
+                column.ColumnName = colName;
+                dataTable.Columns.Add(column);
+            }
+
+            //Search for all data in db
+            string query = "SELECT * FROM " + Database;
+
+            ////Create a list to store the result
+            //List<string>[] list = new List<string>[3];
+            //list[0] = new List<string>();
+            //list[1] = new List<string>();
+            //list[2] = new List<string>();
+
+            //Open connection
+            if (this.OpenConnection(out var errorMessage) == true)
+            {
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    using (MySqlDataReader dataReader = cmd.ExecuteReader())
+                    {
+                        if (dataReader.Read())
+                        {
+//                          var z = dataReader.GetDataTypeName(0);
+//                          z = dataReader.GetDataTypeName(1);
+//                          var ab = dataReader.FieldCount;
+//                          var ac = dataReader.GetName(1);
+                            var colCount = dataReader.FieldCount;
+                            var row = dataTable.NewRow();
+                            for (int i = 0; i < colCount; i++)
+                            {
+                                row[colNames[i]] = dataReader[colNames[i]].ToString();
+                            }
+                            dataTable.Rows.Add(row);
+
+    //                        var x = dataReader.GetString("LicenseKey");
+  //                          var license = dataReader["LicenseKey"].ToString();
+  //                          var currentUser = dataReader["CurrentUser"].ToString();
+
+//                            var y = dataReader.GetDateTime("ExpirationDate");
+                        }
+                    }
+                }
+            }
+
+            return dataTable;
+        }
+
         /// <summary>
         /// Get the number of entries found
         /// </summary>
@@ -505,72 +560,3 @@ namespace Shun
         #endregion
     }
 }
-
-
-//var test = new MySqlConnectionStringBuilder();
-//test.Server = "wibsarlicencias.csqn2onotlww.us-east-1.rds.amazonaws.com";
-//test.Database = "Licenses";
-//test.UserID = "armoag";
-//test.Password = "Yadira00";
-
-
-//    var connTest = new MySqlConnection(ConnectionString.ToString());
-//connTest.Open();
-
-////SELECT LicenseKey, CurrentUser FROM Licenses WHERE idLicenses=2
-//string sqlTest = @"SELECT * FROM Licenses";
-
-////MySqlCommand can be reused but the execute reader cannot be called twice, it needs to be closed before
-
-//var cmdTest = new MySqlCommand(sqlTest, connTest);
-//var readerTest = cmdTest.ExecuteReader();
-//if (readerTest.Read())
-//{
-//   var z = readerTest.GetDataTypeName(0);
-//    z = readerTest.GetDataTypeName(1);
-//    z = readerTest.GetDataTypeName(2);
-//    z = readerTest.GetDataTypeName(3);
-//    z = readerTest.GetDataTypeName(4);
-//    z = readerTest.GetDataTypeName(5);
-//    z = readerTest.GetDataTypeName(6);
-//    z = readerTest.GetDataTypeName(7);
-//    var ab = readerTest.FieldCount;
-//    var ac = readerTest.GetName(1);
-
-//    var x = readerTest.GetString("LicenseKey");
-//    var license = readerTest["LicenseKey"].ToString();
-//    var currentUser = readerTest["CurrentUser"].ToString();
-
-//    var y = readerTest.GetDateTime("ExpirationDate");
-//}
-
-//readerTest.Close();
-
-//connTest.Close();
-//connTest.Dispose();
-
-//var conn = new MySqlConnection(@"Server=wibsarlicencias.csqn2onotlww.us-east-1.rds.amazonaws.com;Database=Licenses;Uid=armoag;Pwd=Yadira00;");
-//conn.Open();
-
-//string sql = @"SELECT LicenseKey, CurrentUser FROM Licenses WHERE idLicenses=2";
-
-//var cmd = new MySqlCommand(sql, conn);
-
-//MySqlDataReader reader = cmd.ExecuteReader();
-//if (reader.Read())
-//{
-//    var license = reader["LicenseKey"].ToString();
-//    var currentUser = reader["CurrentUser"].ToString();
-//}
-
-//sql = @"SELECT LicenseKey, CurrentUser FROM Licenses WHERE idLicenses=1";
-
-//var cmd2 = new MySqlCommand(sql, conn);
-////         MySqlDataReader reader = cmd.ExecuteReader();
-//if (reader.Read())
-//{
-//    var license = reader["LicenseKey"].ToString();
-//    var currentUser = reader["CurrentUser"].ToString();
-//}
-
-//conn.Close();
