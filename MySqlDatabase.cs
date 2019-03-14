@@ -145,12 +145,20 @@ namespace Shun
             }
         }
 
-        public bool Read (string key, out List<Tuple<string, List<Tuple<string, string>>>> keyColNameValuePair)
+        /// <summary>
+        /// Select based on single column key and value pair
+        /// </summary>
+        /// <param name="colKey"></param>
+        /// <param name="value"></param>
+        /// <param name="keyColNameValuePair"></param>
+        /// <returns></returns>
+        public bool Read (string colKey, string value, out List<Tuple<string, List<Tuple<string, string>>>> keyColNameValuePair)
         {
             try
             {
                 //var sqlCommand = @"SELECT * FROM Licenses";
-                var query = @"SELECT " + key + " FROM " + Database;
+                var query = @"SELECT * FROM " + Database + " WHERE ";
+                query = string.Concat(query, colKey, "='", value, "'");
 
                 //list of key, list of colname, colvalue tuples
                 var keyNameValue = new List<Tuple<string, List<Tuple<string, string>>>>();
@@ -171,13 +179,75 @@ namespace Shun
                                 {
                                     nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), dataReader[i].ToString()));
                                 }
-                                keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(key, nameValue));
+                                keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(value, nameValue));
                             }
                         }
                     }
                 }
 
                 keyColNameValuePair = keyNameValue; 
+                return true;
+            }
+            catch (Exception e)
+            {
+                keyColNameValuePair = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Select based on multiple column key and value pairs
+        /// </summary>
+        /// <param name="colValPairs"></param>
+        /// <param name="keyColNameValuePair"></param>
+        /// <returns></returns>
+        public void Read(List<Tuple<string, string>> colValPairs, out List<Tuple<string, List<Tuple<string, string>>>> keyColNameValuePair)
+        {
+
+            //WHERE CustomerName LIKE 'a%'	Finds any values that start with "a"
+            //WHERE CustomerName LIKE '%a'    Finds any values that end with "a"
+            //WHERE CustomerName LIKE '%or%'  Finds any values that have "or" in any position
+            try
+            {
+                string query = "SELECT * FROM " + Database + " WHERE ";
+
+                foreach (var pair in colValPairs)
+                {
+                    query = string.Concat(query, pair.Item1, " LIKE '", "%", pair.Item2, "%'", " AND ");
+                }
+                //remove AND
+                query = query.Remove(query.Length - 5, 5);
+
+                //var sqlCommand = @"SELECT * FROM Licenses";
+             //   var query = @"SELECT * FROM " + Database + " WHERE ";
+              //  string.Concat(query, colKey, "='", value, "'");
+
+                //list of key, list of colname, colvalue tuples
+                var keyNameValue = new List<Tuple<string, List<Tuple<string, string>>>>();
+
+                //Open connection
+                if (this.OpenConnection(out var errorMessage) == true)
+                {
+                    using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                    {
+                        using (MySqlDataReader dataReader = cmd.ExecuteReader())
+                        {
+                            while (dataReader.Read())
+                            {
+                                var nameValue = new List<Tuple<string, string>>();
+                                var colCount = dataReader.FieldCount;
+                                //get all column names and values
+                                for (var i = 0; i < colCount; i++)
+                                {
+                                    nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), dataReader[i].ToString()));
+                                }
+                                keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(value, nameValue));
+                            }
+                        }
+                    }
+                }
+
+                keyColNameValuePair = keyNameValue;
                 return true;
             }
             catch (Exception e)
