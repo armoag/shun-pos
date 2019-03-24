@@ -183,6 +183,8 @@ namespace Shun
                             }
                         }
                     }
+                    //close connection
+                    this.CloseConnection(out errorMessage);
                 }
 
                 keyColNameValuePair = keyNameValue; 
@@ -215,12 +217,13 @@ namespace Shun
                 {
                     query = string.Concat(query, pair.Item1, " LIKE '", "%", pair.Item2, "%'", " AND ");
                 }
+
                 //remove AND
                 query = query.Remove(query.Length - 5, 5);
 
                 //var sqlCommand = @"SELECT * FROM Licenses";
-             //   var query = @"SELECT * FROM " + Database + " WHERE ";
-              //  string.Concat(query, colKey, "='", value, "'");
+                //   var query = @"SELECT * FROM " + Database + " WHERE ";
+                //  string.Concat(query, colKey, "='", value, "'");
 
                 //list of key, list of colname, colvalue tuples
                 var keyNameValue = new List<Tuple<string, List<Tuple<string, string>>>>();
@@ -239,21 +242,23 @@ namespace Shun
                                 //get all column names and values
                                 for (var i = 0; i < colCount; i++)
                                 {
-                                    nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), dataReader[i].ToString()));
+                                    nameValue.Add(new Tuple<string, string>(dataReader.GetName(i),
+                                        dataReader[i].ToString()));
                                 }
-                                keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(value, nameValue));
+
+                                keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(colValPairs.First().Item2, nameValue));
                             }
                         }
                     }
+                    //close connection
+                    this.CloseConnection(out errorMessage);
                 }
 
                 keyColNameValuePair = keyNameValue;
-                return true;
             }
             catch (Exception e)
             {
                 keyColNameValuePair = null;
-                return false;
             }
         }
 
@@ -336,9 +341,9 @@ namespace Shun
                 query = string.Concat(query, pair.Item1, "='", pair.Item2, "', ");
             }
             //remove last comma, quote, and space
-            query = query.Remove(query.Length - 3, 3);
+            query = query.Remove(query.Length - 2, 2);
             //identifier selector
-            query = string.Concat(" WHERE ", identifierCol, "='", identifierValue, "'");
+            query = string.Concat(query, " WHERE ", identifierCol, "='", identifierValue, "'");
 
             //Open connection
             if (this.OpenConnection(out var errorMessage) == true)
@@ -384,7 +389,7 @@ namespace Shun
             if (identifierCol == string.Empty || identifierValue == string.Empty) return;
 
             string query = "DELETE FROM " + Database + " WHERE ";
-            query = string.Concat(identifierCol, "='", identifierValue, "'");
+            query = string.Concat(query, identifierCol, "='", identifierValue, "'");
 
             //Open connection
             if (this.OpenConnection(out var errorMessage) == true)
