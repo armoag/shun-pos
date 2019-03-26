@@ -22,6 +22,7 @@ namespace Shun
         private string _database;
         private string _userId;
         private string _password;
+        private string _table;
         private MySqlConnectionStringBuilder _connectionString;
 
         #endregion
@@ -35,6 +36,12 @@ namespace Shun
         }
 
         public string Database
+        {
+            get { return _database; }
+            set { _database = value; }
+        }
+
+        public string Table
         {
             get { return _database; }
             set { _database = value; }
@@ -71,12 +78,13 @@ namespace Shun
 
         #region Constructors
 
-        public MySqlDatabase(string server, string database, string userId, string password)
+        public MySqlDatabase(string server, string database, string table, string userId, string password)
         {
             Server = server;
             Database = database;
             UserId = userId;
             Password = password;
+            Table = table;
             ConnectionString = new MySqlConnectionStringBuilder
             {
                 Server = server,
@@ -157,7 +165,7 @@ namespace Shun
             try
             {
                 //var sqlCommand = @"SELECT * FROM Licenses";
-                var query = @"SELECT * FROM " + Database + " WHERE ";
+                var query = @"SELECT * FROM " + Table + " WHERE ";
                 query = string.Concat(query, colKey, "='", value, "'");
 
                 //list of key, list of colname, colvalue tuples
@@ -211,7 +219,7 @@ namespace Shun
             //WHERE CustomerName LIKE '%or%'  Finds any values that have "or" in any position
             try
             {
-                string query = "SELECT * FROM " + Database + " WHERE ";
+                string query = "SELECT * FROM " + Table + " WHERE ";
 
                 foreach (var pair in colValPairs)
                 {
@@ -290,7 +298,7 @@ namespace Shun
         {
             if (colValPairs == null) return;
 
-            string query = "INSERT INTO " + Database + " (";
+            string query = "INSERT INTO " + Table + " (";
 
             foreach (var pair in colValPairs)
             {
@@ -334,7 +342,7 @@ namespace Shun
             if (colValPairs == null || identifierCol == string.Empty || identifierValue == string.Empty) return;
 
             //string query = "UPDATE tableinfo SET name='Joe', age='22' WHERE name='John Smith'";
-            string query = "UPDATE " + Database + " SET ";
+            string query = "UPDATE " + Table + " SET ";
 
             foreach (var pair in colValPairs)
             {
@@ -388,7 +396,7 @@ namespace Shun
         {
             if (identifierCol == string.Empty || identifierValue == string.Empty) return;
 
-            string query = "DELETE FROM " + Database + " WHERE ";
+            string query = "DELETE FROM " + Table + " WHERE ";
             query = string.Concat(query, identifierCol, "='", identifierValue, "'");
 
             //Open connection
@@ -482,7 +490,7 @@ namespace Shun
             }
 
             //Search for all data in db
-            string query = "SELECT * FROM " + Database;
+            string query = "SELECT * FROM " + Table;
 
             ////Create a list to store the result
             //List<string>[] list = new List<string>[3];
@@ -530,7 +538,7 @@ namespace Shun
         /// <returns></returns>
         private int Count()
         {
-            string query = "SELECT Count(*) FROM " + Database;
+            string query = "SELECT Count(*) FROM " + Table;
             int Count = -1;
 
             //Open Connection
