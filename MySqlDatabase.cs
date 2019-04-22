@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management;
@@ -10,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MySql.Data;
 using MySql.Data.MySqlClient;
+using MySql.Data.Types;
 
 namespace Shun
 {
@@ -109,7 +111,10 @@ namespace Shun
         {
             try
             {
-                Connection.Open();
+                if (Connection.State == ConnectionState.Closed)
+                {
+                    Connection.Open();
+                }
                 errorMessage = string.Empty;
                 return true;
             }
@@ -200,6 +205,7 @@ namespace Shun
             }
             catch (Exception e)
             {
+                this.CloseConnection(out var errorMessage);
                 keyColNameValuePair = null;
                 return false;
             }
@@ -266,6 +272,7 @@ namespace Shun
             }
             catch (Exception e)
             {
+                this.CloseConnection(out var errorMessage);
                 keyColNameValuePair = null;
             }
         }
@@ -298,36 +305,47 @@ namespace Shun
         {
             if (colValPairs == null) return;
 
-            string query = "INSERT INTO " + Table + " (";
-
-            foreach (var pair in colValPairs)
+            try
             {
-                query = string.Concat(query, pair.Item1, ", ");
-            }
-            //remove last comma and space
-            query = query.Remove(query.Length - 2, 2);
-            query = query + ") VALUES (";
+                string query = "INSERT INTO " + Table + " (";
 
-            foreach (var pair in colValPairs)
-            {
-                string temp = "'" + pair.Item2 + "'";
-                query = string.Concat(query, temp, ", ");
-            }
-            //remove last comma and space
-            query = query.Remove(query.Length - 2, 2);
-            query = query + ")";
-
-            //Open connection
-            if (this.OpenConnection(out var errorMessage) == true)
-            {
-                //create command and assign the query and connection from the constructor
-                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                foreach (var pair in colValPairs)
                 {
-                    //Execute command
-                    cmd.ExecuteNonQuery();
-                };
-                //close connection
-                this.CloseConnection(out errorMessage);
+                    query = string.Concat(query, pair.Item1, ", ");
+                }
+
+                //remove last comma and space
+                query = query.Remove(query.Length - 2, 2);
+                query = query + ") VALUES (";
+
+                foreach (var pair in colValPairs)
+                {
+                    string temp = "'" + pair.Item2 + "'";
+                    query = string.Concat(query, temp, ", ");
+                }
+
+                //remove last comma and space
+                query = query.Remove(query.Length - 2, 2);
+                query = query + ")";
+
+                //Open connection
+                if (this.OpenConnection(out var errorMessage) == true)
+                {
+                    //create command and assign the query and connection from the constructor
+                    using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                    {
+                        //Execute command
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    ;
+                    //close connection
+                    this.CloseConnection(out errorMessage);
+                }
+            }
+            catch (Exception e)
+            {
+                this.CloseConnection(out var errorMessage);
             }
         }
 
@@ -341,30 +359,42 @@ namespace Shun
         {
             if (colValPairs == null || identifierCol == string.Empty || identifierValue == string.Empty) return;
 
-            //string query = "UPDATE tableinfo SET name='Joe', age='22' WHERE name='John Smith'";
-            string query = "UPDATE " + Table + " SET ";
-
-            foreach (var pair in colValPairs)
+            try
             {
-                query = string.Concat(query, pair.Item1, "='", pair.Item2, "', ");
-            }
-            //remove last comma, quote, and space
-            query = query.Remove(query.Length - 2, 2);
-            //identifier selector
-            query = string.Concat(query, " WHERE ", identifierCol, "='", identifierValue, "'");
+                //string query = "UPDATE tableinfo SET name='Joe', age='22' WHERE name='John Smith'";
+                string query = "UPDATE " + Table + " SET ";
 
-            //Open connection
-            if (this.OpenConnection(out var errorMessage) == true)
-            {
-                //create command and assign the query and connection from the constructor
-                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                foreach (var pair in colValPairs)
                 {
-                    //Execute command
-                    cmd.ExecuteNonQuery();
-                };
-                //close connection
-                this.CloseConnection(out errorMessage);
+                    query = string.Concat(query, pair.Item1, "='", pair.Item2, "', ");
+                }
+
+                //remove last comma, quote, and space
+                query = query.Remove(query.Length - 2, 2);
+                //identifier selector
+                query = string.Concat(query, " WHERE ", identifierCol, "='", identifierValue, "'");
+
+                //Open connection
+                if (this.OpenConnection(out var errorMessage) == true)
+                {
+                    //create command and assign the query and connection from the constructor
+                    using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                    {
+                        //Execute command
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    ;
+                    //close connection
+                    this.CloseConnection(out errorMessage);
+                }
             }
+            catch (Exception e)
+            {
+                this.CloseConnection(out var errorMessage);
+
+            }
+
         }
 
         /// <summary>
@@ -399,18 +429,29 @@ namespace Shun
             string query = "DELETE FROM " + Table + " WHERE ";
             query = string.Concat(query, identifierCol, "='", identifierValue, "'");
 
-            //Open connection
-            if (this.OpenConnection(out var errorMessage) == true)
+            try
             {
-                //create command and assign the query and connection from the constructor
-                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                //Open connection
+                if (this.OpenConnection(out var errorMessage) == true)
                 {
-                    //Execute command
-                    cmd.ExecuteNonQuery();
-                };
-                //close connection
-                this.CloseConnection(out errorMessage);
+                    //create command and assign the query and connection from the constructor
+                    using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                    {
+                        //Execute command
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    ;
+                    //close connection
+                    this.CloseConnection(out errorMessage);
+                }
             }
+            catch (Exception e)
+            {
+                this.CloseConnection(out var errorMessage);
+
+            }
+
         }
 
         /// <summary>
@@ -419,18 +460,28 @@ namespace Shun
         /// <param name="query"></param>
         public void Delete(string query)
         {
-            //Open connection
-            if (this.OpenConnection(out var errorMessage) == true)
+            try
             {
-                //create command and assign the query and connection from the constructor
-                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                //Open connection
+                if (this.OpenConnection(out var errorMessage) == true)
                 {
-                    //Execute command
-                    cmd.ExecuteNonQuery();
-                };
-                //close connection
-                this.CloseConnection(out errorMessage);
+                    //create command and assign the query and connection from the constructor
+                    using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                    {
+                        //Execute command
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    ;
+                    //close connection
+                    this.CloseConnection(out errorMessage);
+                }
             }
+            catch (Exception e)
+            {
+                this.CloseConnection(out var errorMessage);
+            }
+
         }
 
         //Select statement
@@ -479,13 +530,15 @@ namespace Shun
         public DataTable SelectAll(List<string> colNames)
         {
             var dataTable = new DataTable();
-            var column = new DataColumn();
 
             //Create columns
             foreach (var colName in colNames)
             {
-                column.DataType = System.Type.GetType("System.String");
-                column.ColumnName = colName;
+                var column = new DataColumn()
+                {
+                    DataType = System.Type.GetType("System.String"),
+                    ColumnName = colName
+                };
                 dataTable.Columns.Add(column);
             }
 
@@ -505,7 +558,7 @@ namespace Shun
                 {
                     using (MySqlDataReader dataReader = cmd.ExecuteReader())
                     {
-                        if (dataReader.Read())
+                        while(dataReader.Read())
                         {
 //                          var z = dataReader.GetDataTypeName(0);
 //                          z = dataReader.GetDataTypeName(1);
@@ -513,8 +566,14 @@ namespace Shun
 //                          var ac = dataReader.GetName(1);
                             var colCount = dataReader.FieldCount;
                             var row = dataTable.NewRow();
-                            for (int i = 0; i < colCount; i++)
+                            for (var i = 0; i < colCount; i++)
                             {
+                                if (colNames[i].Contains("Fecha"))
+                                {                                   
+                                    var datestring = dataReader[colNames[i]].ToString();
+                                    row[colNames[i]] = DateTime.Parse(datestring).ToString(CultureInfo.CurrentCulture);
+                                    continue;
+                                }
                                 row[colNames[i]] = dataReader[colNames[i]].ToString();
                             }
                             dataTable.Rows.Add(row);
@@ -564,6 +623,7 @@ namespace Shun
         //Backup
         public void Backup(out string errorMessage)
         {
+            ///TODO Need to me impelemented
             try
             {
                 DateTime Time = DateTime.Now;
@@ -580,7 +640,7 @@ namespace Shun
                 path = "C:\\MySqlBackup" + year + "-" + month + "-" + day +
                        "-" + hour + "-" + minute + "-" + second + "-" + millisecond + ".sql";
                 StreamWriter file = new StreamWriter(path);
-                
+
                 ProcessStartInfo psi = new ProcessStartInfo();
                 psi.FileName = "mysqldump";
                 psi.RedirectStandardInput = false;
@@ -611,34 +671,36 @@ namespace Shun
         /// <param name="errorMessage"></param>
         public void Restore(out string errorMessage)
         {
-            try
-            {
-                //Read file from C:\
-                string path;
-                path = "C:\\MySqlBackup.sql";
-                StreamReader file = new StreamReader(path);
-                string input = file.ReadToEnd();
-                file.Close();
+           
+            //try
+            //{
+            //    //Read file from C:\
+            //    string path;
+            //    path = "C:\\MySqlBackup.sql";
+            //    StreamReader file = new StreamReader(path);
+            //    string input = file.ReadToEnd();
+            //    file.Close();
 
-                ProcessStartInfo psi = new ProcessStartInfo();
-                psi.FileName = "mysql";
-                psi.RedirectStandardInput = true;
-                psi.RedirectStandardOutput = false;
-                psi.Arguments = string.Format(@"-u{0} -p{1} -h{2} {3}",
-                    UserId, Password, Server, Database);
-                psi.UseShellExecute = false;
+            //    ProcessStartInfo psi = new ProcessStartInfo();
+            //    psi.FileName = "mysql";
+            //    psi.RedirectStandardInput = true;
+            //    psi.RedirectStandardOutput = false;
+            //    psi.Arguments = string.Format(@"-u{0} -p{1} -h{2} {3}",
+            //        UserId, Password, Server, Database);
+            //    psi.UseShellExecute = false;
 
-                Process process = Process.Start(psi);
-                process.StandardInput.WriteLine(input);
-                process.StandardInput.Close();
-                process.WaitForExit();
-                process.Close();
-                errorMessage = string.Empty;
-            }
-            catch (IOException ex)
-            {
-                errorMessage = "Error , unable to Restore!";
-            }
+            //    Process process = Process.Start(psi);
+            //    process.StandardInput.WriteLine(input);
+            //    process.StandardInput.Close();
+            //    process.WaitForExit();
+            //    process.Close();
+            //    errorMessage = string.Empty;
+            //}
+            //catch (IOException ex)
+            //{
+            //    errorMessage = "Error , unable to Restore!";
+            //}
+            errorMessage = "";
         }
         #endregion
     }
