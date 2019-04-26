@@ -187,9 +187,16 @@ namespace Shun
                             {
                                 var nameValue = new List<Tuple<string, string>>();
                                 var colCount = dataReader.FieldCount;
+
                                 //get all column names and values
                                 for (var i = 0; i < colCount; i++)
                                 {
+                                    if (dataReader.GetName(i).Contains("Fecha"))
+                                    {
+                                        nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), 
+                                            DateTime.Parse(dataReader[i].ToString()).ToString(CultureInfo.CurrentCulture)));
+                                        continue;
+                                    }
                                     nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), dataReader[i].ToString()));
                                 }
                                 keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(value, nameValue));
@@ -256,10 +263,15 @@ namespace Shun
                                 //get all column names and values
                                 for (var i = 0; i < colCount; i++)
                                 {
+                                    if (colValPairs[i].Item1.Contains("Fecha"))
+                                    {
+                                        nameValue.Add(new Tuple<string, string>(dataReader.GetName(i),
+                                            DateTime.Parse(dataReader[i].ToString()).ToString(CultureInfo.CurrentCulture)));
+                                        continue;
+                                    }
                                     nameValue.Add(new Tuple<string, string>(dataReader.GetName(i),
                                         dataReader[i].ToString()));
                                 }
-
                                 keyNameValue.Add(new Tuple<string, List<Tuple<string, string>>>(colValPairs.First().Item2, nameValue));
                             }
                         }
