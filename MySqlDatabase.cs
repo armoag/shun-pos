@@ -580,13 +580,24 @@ namespace Shun
                             var row = dataTable.NewRow();
                             for (var i = 0; i < colCount; i++)
                             {
-                                if (colNames[i].Contains("Fecha"))
-                                {                                   
-                                    var datestring = dataReader[colNames[i]].ToString();
-                                    row[colNames[i]] = DateTime.Parse(datestring).ToString(CultureInfo.CurrentCulture);
-                                    continue;
+                                try
+                                {
+                                    if (colNames[i].Contains("Fecha"))
+                                    {
+
+                                        var datestring = dataReader[colNames[i]].ToString();
+                                        row[colNames[i]] = DateTime.Parse(datestring)
+                                            .ToString(CultureInfo.CurrentCulture);
+                                        continue;
+                                    }
+
+                                    row[colNames[i]] = dataReader[colNames[i]].ToString();
                                 }
-                                row[colNames[i]] = dataReader[colNames[i]].ToString();
+                                catch (Exception e)
+                                {
+                                    errorMessage = "Error in reading col " + i.ToString();
+                                    row[colNames[i]] = DateTime.Now.ToString(CultureInfo.CurrentCulture);
+                                }
                             }
                             dataTable.Rows.Add(row);
 
