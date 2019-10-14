@@ -193,8 +193,20 @@ namespace Shun
                                 {
                                     if (dataReader.GetName(i).Contains("Fecha"))
                                     {
-                                        nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), 
-                                            DateTime.Parse(dataReader[i].ToString()).ToString(CultureInfo.CurrentCulture)));
+                                        var timecheck = dataReader[i] is MySqlDateTime;
+
+                                        var date = new DateTime(2000, 1, 1, 0, 0, 0);
+                                        if (dataReader[i] != null)
+                                        {
+                                            DateTime.TryParse(dataReader[i].ToString().ToString(CultureInfo.CurrentCulture),
+                                                out date);
+                                        }
+
+                                        nameValue.Add(new Tuple<string, string>(dataReader.GetName(i),
+                                            date.ToString(CultureInfo.CurrentCulture)));
+
+                                        //nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), 
+                                        //    DateTime.Parse(dataReader[i].ToString()).ToString(CultureInfo.CurrentCulture)));
                                         continue;
                                     }
                                     nameValue.Add(new Tuple<string, string>(dataReader.GetName(i), dataReader[i].ToString()));
@@ -606,6 +618,83 @@ namespace Shun
   //                          var currentUser = dataReader["CurrentUser"].ToString();
 
 //                            var y = dataReader.GetDateTime("ExpirationDate");
+                        }
+                    }
+                }
+            }
+
+            return dataTable;
+        }
+
+
+        //Select statement
+        public DataTable Select(List<string> colNames)
+        {
+            var dataTable = new DataTable();
+            
+            //Create columns
+            foreach (var colName in colNames)
+            {
+                var column = new DataColumn()
+                {
+                    DataType = System.Type.GetType("System.String"),
+                    ColumnName = colName
+                };
+                dataTable.Columns.Add(column);
+            }
+
+            //Search for all data in db
+            //string query = "SELECT * FROM " + Table;
+
+            string query = "SELECT ";
+            foreach (var colName in colNames)
+            {
+                query = query + colName + ", ";
+            }
+            //remove last comma and space
+            query = query.Remove(query.Length - 2, 2);
+            //add table info
+            query = query + " FROM " + Table;
+
+            ////Create a list to store the result
+            //List<string>[] list = new List<string>[3];
+            //list[0] = new List<string>();
+            //list[1] = new List<string>();
+            //list[2] = new List<string>();
+
+            //Open connection
+            if (this.OpenConnection(out var errorMessage) == true)
+            {
+                using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                {
+                    using (MySqlDataReader dataReader = cmd.ExecuteReader())
+                    {
+                        while (dataReader.Read())
+                        {
+                            var row = dataTable.NewRow();
+                            var dbColCount = dataReader.FieldCount;
+
+                            for (var i = 0; i < dbColCount; i++)
+                            {
+                                try
+                                {
+                                    if (colNames[i].Contains("Fecha"))
+                                    {
+                                        var datestring = dataReader[colNames[i]].ToString();
+                                        row[colNames[i]] = DateTime.Parse(datestring)
+                                            .ToString(CultureInfo.CurrentCulture);
+                                        continue;
+                                    }
+
+                                    row[colNames[i]] = dataReader[colNames[i]].ToString();
+                                }
+                                catch (Exception e)
+                                {
+                                    errorMessage = "Error in reading col " + i.ToString();
+                                    row[colNames[i]] = DateTime.Now.ToString(CultureInfo.CurrentCulture);
+                                }
+                            }
+                            dataTable.Rows.Add(row);
                         }
                     }
                 }
