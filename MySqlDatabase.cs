@@ -374,6 +374,59 @@ namespace Shun
         }
 
         /// <summary>
+        /// Insert mysql statement with column data pairs
+        /// </summary>
+        /// <param name="colValPairsList"></param>
+        public void InsertMultipleItems(List<List<Tuple<string, string>>> colValPairsList)
+        {
+            if (colValPairsList == null) return;
+
+            try
+            {
+                //Open connection
+                if (this.OpenConnection(out var errorMessage) == true)
+                {
+                    foreach (var colValPairs in colValPairsList)
+                    {
+                        string query = "INSERT INTO " + Table + " (";
+
+                        foreach (var pair in colValPairs)
+                        {
+                            query = string.Concat(query, pair.Item1, ", ");
+                        }
+
+                        //remove last comma and space
+                        query = query.Remove(query.Length - 2, 2);
+                        query = query + ") VALUES (";
+
+                        foreach (var pair in colValPairs)
+                        {
+                            string temp = "'" + pair.Item2 + "'";
+                            query = string.Concat(query, temp, ", ");
+                        }
+
+                        //remove last comma and space
+                        query = query.Remove(query.Length - 2, 2);
+                        query = query + ")";
+
+                        //create command and assign the query and connection from the constructor
+                        using (MySqlCommand cmd = new MySqlCommand(query, Connection))
+                        {
+                            //Execute command
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                    //close connection
+                    this.CloseConnection(out errorMessage);
+                }
+            }
+            catch (Exception e)
+            {
+                this.CloseConnection(out var errorMessage);
+            }
+        }
+
+        /// <summary>
         /// Update mysql statement
         /// </summary>
         /// <param name="identifierCol"></param>
